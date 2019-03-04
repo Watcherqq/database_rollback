@@ -78,8 +78,33 @@ INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (12, 'F', 1, 'j
 UPDATE `rollback`.`user` SET `age`=23, `sex`='F', `id`=4, `name`='jack ma' WHERE `age`=23 AND `sex`='F' AND `id`=4 AND `name`='brank' LIMIT 1; #start 2765 end 3036 time 2019-03-01 10:54:10
 ```
 
-**解析出回滚SQL**
+**解析出标准insert**
+shell>python rollback_binlog.py -h127.0.0.1 -P3306 -uroot -padmin -drollback -tuser --start-file='mysql-bin.000004' --sql-type insert
+输出：
+INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (33, 'M', 3, 'marry'); #start 4 end 405 time 2019-03-01 10:12:18
+INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (23, 'F', 4, 'brank'); #start 436 end 687 time 2019-03-01 10:12:45
+INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (26, 'F', 5, 'Doc xiao'); #start 718 end 972 time 2019-03-01 10:13:20
+INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (26, 'F', 5, 'Doc xiao'); #start 1354 end 1608 time 2019-03-01 10:51:57
+INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (23, 'F', 4, 'brank'); #start 1639 end 1890 time 2019-03-01 10:51:57
+INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (33, 'M', 3, 'marry'); #start 1921 end 2172 time 2019-03-01 10:51:57
+INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (22, 'M', 2, 'lucy'); #start 2203 end 2453 time 2019-03-01 10:51:57
+INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (12, 'F', 1, 'jack'); #start 2484 end 2734 time 2019-03-01 10:51:57
 
+解释：--sql-type   参数    -------->>>>对某一种操作类型进行标准解析
+
+
+
+
+
+
+**解析出回滚SQL**
+'''
+对标准操作的回滚解析说明：
+
+标准操作insert  ------>>  回滚解析delete
+标准操作update  ------>>  回滚解析update
+标准操作delete  ------>>  回滚解析insert
+'''
 ```bash
 
 shell> python rollback_binlog.py --flashback -h127.0.0.1 -P3306 -uroot -padmin -drollback -tuser --start-file='mysql-bin.000004' --start-position=1003 --stop-position=1323
@@ -92,6 +117,18 @@ INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (22, 'M', 2, 'l
 INSERT INTO `rollback`.`user`(`age`, `sex`, `id`, `name`) VALUES (12, 'F', 1, 'jack'); #start 1003 end 1323 time 2019-03-01 10:30:55
 
 ```
+
+**对标准insert的解析回滚**
+shell> python rollback_binlog.py --flashback -h127.0.0.1 -P3306 -uroot -padmin -drollback -tuser --start-file='mysql-bin.000004' --start-position=1003 --stop-position=3036 --sql-type insert
+输出：
+DELETE FROM `rollback`.`user` WHERE `age`=12 AND `sex`='F' AND `id`=1 AND `name`='jack' LIMIT 1; #start 2484 end 2734 time 2019-03-01 10:51:57
+DELETE FROM `rollback`.`user` WHERE `age`=22 AND `sex`='M' AND `id`=2 AND `name`='lucy' LIMIT 1; #start 2203 end 2453 time 2019-03-01 10:51:57
+DELETE FROM `rollback`.`user` WHERE `age`=33 AND `sex`='M' AND `id`=3 AND `name`='marry' LIMIT 1; #start 1921 end 2172 time 2019-03-01 10:51:57
+DELETE FROM `rollback`.`user` WHERE `age`=23 AND `sex`='F' AND `id`=4 AND `name`='brank' LIMIT 1; #start 1639 end 1890 time 2019-03-01 10:51:57
+DELETE FROM `rollback`.`user` WHERE `age`=26 AND `sex`='F' AND `id`=5 AND `name`='Doc xiao' LIMIT 1; #start 1354 end 1608 time 2019-03-01 10:51:57
+DELETE FROM `rollback`.`user` WHERE `age`=26 AND `sex`='F' AND `id`=5 AND `name`='Doc xiao' LIMIT 1; #start 718 end 972 time 2019-03-01 10:13:20
+DELETE FROM `rollback`.`user` WHERE `age`=23 AND `sex`='F' AND `id`=4 AND `name`='brank' LIMIT 1; #start 436 end 687 time 2019-03-01 10:12:45
+
 
 ### 选项
 
